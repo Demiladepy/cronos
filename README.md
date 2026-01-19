@@ -4,13 +4,13 @@ Voice-activated AI shopping agent that helps blind users (and all shoppers) find
 
 ## Features
 
-- 🎤 **Voice-Activated Shopping**: Speak your shopping requests naturally
-- 🔍 **Multi-Platform Search**: Searches across Amazon, Jumia, Konga, eBay, AliExpress
-- 💰 **Best Deal Finder**: Automatically finds and compares prices
-- 🎟️ **Auto-Coupon Application**: Applies available coupons automatically
-- 🔊 **Voice Feedback**: Results are spoken back to you
-- ♿ **Accessibility First**: Full ARIA labels, keyboard navigation, screen reader compatible
-- 🎨 **High Contrast Mode**: Enhanced visibility for users with vision impairments
+-  **Voice-Activated Shopping**: Speak your shopping requests naturally
+-  **Multi-Platform Search**: Searches across Amazon, Jumia, Konga, eBay, AliExpress
+-  **Best Deal Finder**: Automatically finds and compares prices
+-  **Auto-Coupon Application**: Applies available coupons automatically
+-  **Voice Feedback**: Results are spoken back to you
+-  **Accessibility First**: Full ARIA labels, keyboard navigation, screen reader compatible
+-  **High Contrast Mode**: Enhanced visibility for users with vision impairments
 
 ## Tech Stack
 
@@ -121,9 +121,9 @@ The app supports natural language voice commands:
 
 ## Browser Compatibility
 
-- ✅ Chrome/Edge (Full support)
-- ✅ Safari (Full support)
-- ⚠️ Firefox (Limited - may require polyfills)
+-  Chrome/Edge (Full support)
+-  Safari (Full support)
+-  Firefox (Limited - may require polyfills)
 
 ## Testing
 
