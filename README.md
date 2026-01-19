@@ -196,11 +196,20 @@ For issues and questions, please open an issue on GitHub.
 
 ## Roadmap
 
-- [ ] Backend API integration
-- [ ] Product scraping from e-commerce platforms
-- [ ] GPT-4 Vision integration for product analysis
-- [ ] Affiliate link generation
+- [x] Backend API integration (Express + TypeScript)
+- [x] Product extraction from screenshots (GPT-4 Vision)
+- [x] Intelligent Price Comparison Engine
+- [x] Redis caching for cost optimization
+- [x] Affiliate click tracking
+- [x] Usage & Cost Dashboard
+- [ ] Multi-platform product scraping
 - [ ] User accounts and preferences
 - [ ] Premium subscription features
 - [ ] Mobile app (React Native)
+
+## Cost Optimization
+Our system is designed to minimize OpenAI API costs:
+1. **Caching:** SHA-256 screenshot hashing avoids re-analyzing the same page within 1 hour.
+2. **Image Optimization:** Automated resizing and JPEG compression reduce token consumption.
+3. **Batch Extraction:** AI extracts all products on a page in a single request.
 

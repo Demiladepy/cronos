@@ -1,5 +1,53 @@
 /* App-specific styles */
 .app-container {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
+.main-nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.main-nav button {
+  padding: 0.5rem 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.main-nav button:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.main-nav button.active {
+  background: #6366f1;
+  color: white;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+
+.content-area {
+  flex: 1;
+  padding-bottom: 4rem;
+}
+
+/* Base App Styles */
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  text-align: center;
+}

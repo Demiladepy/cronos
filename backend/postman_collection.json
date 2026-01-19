@@ -1,0 +1,187 @@
+{
+    "info": {
+        "name": "Blind Bargain API",
+        "description": "API endpoints for Blind Bargain - AI-powered product extraction and price comparison",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/health",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "health"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Analyze Screenshot",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"screenshot\": \"{{sampleBase64Image}}\",\n  \"platform\": \"amazon\"\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/analyze",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "analyze"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Search Products",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"productName\": \"iPhone 15\",\n  \"platforms\": [\"amazon\", \"jumia\", \"konga\"],\n  \"maxPrice\": 500000,\n  \"minRating\": 4.0\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/search",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "search"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Get Coupons",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/coupons/amazon",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "coupons",
+                        "amazon"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Add Coupon",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"code\": \"SAVE20\",\n  \"description\": \"20% off electronics\",\n  \"discount\": \"20%\",\n  \"store\": \"amazon\",\n  \"expiresAt\": \"2024-12-31T23:59:59.000Z\",\n  \"verified\": true\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/coupons",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "coupons"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Track Click",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"productUrl\": \"https://amazon.com/product/123\",\n  \"platform\": \"amazon\",\n  \"productName\": \"iPhone 15 Pro\",\n  \"price\": 450000\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/track-click",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "track-click"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Get Affiliate Stats",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/track-click/stats?startDate=2024-01-01&endDate=2024-12-31",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "track-click",
+                        "stats"
+                    ],
+                    "query": [
+                        {
+                            "key": "startDate",
+                            "value": "2024-01-01"
+                        },
+                        {
+                            "key": "endDate",
+                            "value": "2024-12-31"
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:3001",
+            "type": "string"
+        },
+        {
+            "key": "sampleBase64Image",
+            "value": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+            "type": "string"
+        }
+    ]
+}

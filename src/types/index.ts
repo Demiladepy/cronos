@@ -1,25 +1,69 @@
-export interface VoiceCommand {
-  action: 'find' | 'compare' | 'bestDeal' | 'search'
-  product: string
-  platform?: 'amazon' | 'jumia' | 'konga' | 'ebay' | 'aliexpress' | 'all'
-  maxPrice?: number
-  minPrice?: number
+export interface ProductListing {
+  name: string;
+  price: number;
+  currency: string;
+  seller: string;
+  rating: number | null;
+  reviewCount?: number;
+  availability: 'in_stock' | 'out_of_stock' | 'preorder';
+  shipping: number | null;
+  url: string | null;
+  platform?: string;
+  imageUrl?: string;
+  extractedAt: Date;
 }
 
-export interface ProductResult {
-  name: string
-  price: number
-  platform: string
-  url: string
-  imageUrl?: string
-  rating?: number
-  couponAvailable?: boolean
+export interface AnalyzeRequest {
+  screenshot: string;
+  platform?: string;
 }
 
-export interface SearchResult {
-  query: string
-  products: ProductResult[]
-  bestDeal: ProductResult | null
-  timestamp: Date
+export interface AnalyzeResponse {
+  products: ProductListing[];
+  processingTime: number;
+  cached: boolean;
+  screenshotHash?: string;
 }
 
+export interface SearchRequest {
+  productName: string;
+  platforms: string[];
+  maxPrice?: number;
+  minRating?: number;
+}
+
+export interface PlatformResult {
+  platform: string;
+  products: ProductListing[];
+  searchTime: number;
+  error?: string;
+}
+
+export interface SearchResponse {
+  results: PlatformResult[];
+  bestDeal: ProductListing | null;
+  totalProducts: number;
+}
+
+export interface CouponData {
+  code: string;
+  description: string;
+  discount: string;
+  expiresAt: Date | null;
+  verified: boolean;
+  store: string;
+}
+
+export interface TrackClickRequest {
+  productUrl: string;
+  userId?: string;
+  platform: string;
+  productName?: string;
+  price?: number;
+}
+
+export interface TrackClickResponse {
+  affiliateUrl: string;
+  estimatedCommission: number;
+  tracked: boolean;
+}

@@ -1,0 +1,150 @@
+.dashboard-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #f8fafc;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    font-family: 'Inter', sans-serif;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.dashboard-header h2 {
+    font-size: 1.8rem;
+    color: #1e293b;
+    margin: 0;
+}
+
+.btn-refresh {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-refresh:hover {
+    background: #f1f5f9;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    border: 1px solid #f1f5f9;
+}
+
+.stat-card.total {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+}
+
+.stat-card h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    opacity: 0.9;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+.usage-table-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    border: 1px solid #f1f5f9;
+}
+
+.usage-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.usage-table th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: #64748b;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.usage-table td {
+    padding: 1rem;
+    font-size: 0.95rem;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.endpoint-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: #6366f1;
+}
+
+.cost-cell {
+    font-weight: 600;
+    color: #10b981;
+}
+
+.optimization-tips {
+    background: #eff6ff;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #dbeafe;
+}
+
+.optimization-tips h3 {
+    font-size: 1.1rem;
+    color: #1e40af;
+    margin-top: 0;
+}
+
+.optimization-tips ul {
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+
+.optimization-tips li {
+    margin-bottom: 0.5rem;
+    color: #1e3a8a;
+    font-size: 0.9rem;
+}
+
+.error-text {
+    color: #ef4444;
+}
+
+.empty-msg {
+    text-align: center;
+    color: #94a3b8;
+    padding: 2rem !important;
+}
