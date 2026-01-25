@@ -1,3 +1,6 @@
+// Declare chrome as a global variable for TypeScript (browser extension API)
+declare const chrome: any;
+
 /**
  * Screenshot Capture Service
  * Captures browser screenshots, optimizes them, and converts to base64

@@ -19,7 +19,7 @@ export interface AnalyzeProductResponse {
 }
 
 export async function analyzeProductImage(
-  request: AnalyzeProductRequest
+  _request: AnalyzeProductRequest
 ): Promise<AnalyzeProductResponse> {
   // TODO: Implement actual OpenAI API call
   // This should be done on the backend for security

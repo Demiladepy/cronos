@@ -21,11 +21,6 @@ export const Dashboard: React.FC = () => {
     const fetchStats = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_BASE_URL}/api/track-click/stats`); // For demo, using affiliate stats
-            // In a real app, we'd have a specific endpoint for API usage stats
-            // which I implemented in CacheService but need a route for.
-            // I'll add that route to the backend shortly.
-
             const usageResponse = await fetch(`${API_BASE_URL}/api/admin/usage`);
             if (usageResponse.ok) {
                 const data = await usageResponse.json();

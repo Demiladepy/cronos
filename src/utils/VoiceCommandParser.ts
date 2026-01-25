@@ -98,7 +98,7 @@ export class VoiceCommandParser {
   /**
    * Extracts product name from text
    */
-  private static extractProduct(text: string, action: string): string {
+  private static extractProduct(text: string): string {
     const normalized = this.normalize(text)
     let product = normalized
 
@@ -192,7 +192,7 @@ export class VoiceCommandParser {
     const normalized = this.normalize(command)
     const action = this.detectAction(normalized)
     const platform = this.detectPlatform(normalized)
-    const product = this.extractProduct(normalized, action)
+    const product = this.extractProduct(normalized)
     const priceConstraints = this.extractPriceConstraints(normalized)
 
     if (!product) {
