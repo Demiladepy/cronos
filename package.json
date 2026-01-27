@@ -16,10 +16,16 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
+=======
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@types/vitest": "^1.0.0",
+>>>>>>> a4b6b2761458690c9ef2991a59babe3c8ef347d6
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",

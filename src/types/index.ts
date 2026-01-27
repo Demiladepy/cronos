@@ -67,3 +67,11 @@ export interface TrackClickResponse {
   estimatedCommission: number;
   tracked: boolean;
 }
+
+export interface VoiceCommand {
+  action: 'bestDeal' | 'compare' | 'search' | 'find';
+  product: string;
+  platform?: string;
+  maxPrice?: number;
+  minPrice?: number;
+}

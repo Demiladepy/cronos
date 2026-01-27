@@ -1,3 +1,5 @@
+/// <reference types="vitest" />
+import { describe, it, expect } from 'vitest'
 import { VoiceCommandParser } from './VoiceCommandParser'
 import { VoiceCommand } from '../types'
 
