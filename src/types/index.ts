@@ -1,3 +1,23 @@
+
+export interface AnalyzingModalProps {
+  isOpen: boolean;
+  progress: number; 
+  onCancel: () => void;
+}
+
+export interface ResultItem {
+  id: string;
+  name: string;
+  image: string;
+  price: number;
+  vendor: string;
+  url: string;
+}
+
+export interface HomeHeroProps {
+  onResult: (results: ResultItem[]) => void;
+}
+
 export interface ProductListing {
   name: string;
   price: number;
