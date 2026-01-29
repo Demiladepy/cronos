@@ -6,11 +6,13 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import analyzeRouter from './routes/analyze.js';
 import searchRouter from './routes/search.js';
+import scrapeRouter from './routes/scrape.js';
 import couponsRouter from './routes/coupons.js';
 import trackingRouter from './routes/tracking.js';
 import adminRouter from './routes/admin.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { runMigrations } from './db/migrate.js';
+import { WebScraper } from './services/scraper.js';
 
 dotenv.config();
 
@@ -69,6 +71,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/scrape', scrapeRouter);
 app.use('/api/coupons', couponsRouter);
 app.use('/api/track-click', trackingRouter);
 app.use('/api/admin', adminRouter);
@@ -88,18 +91,38 @@ app.use(errorHandler);
 // Start server
 async function startServer() {
     try {
-        // Run database migrations
-        console.log('🔄 Running database migrations...');
-        await runMigrations();
+        // Skip database migrations for MVP (PostgreSQL not required)
+        console.log('⏭️  Skipping database migrations ');
+        // await runMigrations();;
 
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
             console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
             console.log(`🔗 Health check: http://localhost:${PORT}/health`);
             console.log(`🔗 API base URL: http://localhost:${PORT}/api`);
         });
+
+        // Graceful shutdown
+        process.on('SIGTERM', async () => {
+            console.log('⏸️  SIGTERM received, shutting down gracefully...');
+            server.close(async () => {
+                console.log('✅ Server closed');
+                await WebScraper.closeBrowser();
+                process.exit(0);
+            });
+        });
+
+        process.on('SIGINT', async () => {
+            console.log('⏸️  SIGINT received, shutting down gracefully...');
+            server.close(async () => {
+                console.log('✅ Server closed');
+                await WebScraper.closeBrowser();
+                process.exit(0);
+            });
+        });
     } catch (error) {
         console.error('❌ Failed to start server:', error);
+        await WebScraper.closeBrowser();
         process.exit(1);
     }
 }

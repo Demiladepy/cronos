@@ -155,9 +155,7 @@ export class PriceComparisonEngine {
         }
     }
 
-    /**
-     * Detect and filter out suspicious listings
-     */
+
     static detectScams(listings: ProductListing[]): ProductListing[] {
         if (listings.length === 0) return [];
 

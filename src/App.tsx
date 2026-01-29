@@ -1,20 +1,16 @@
-import { useState } from 'react'
-import LandingPage from './components/LandingPage'
-import VoiceInterface from './components/VoiceInterface'
-import { ProductExtractor } from './components/ProductExtractor'
-import { Dashboard } from './components/Dashboard'
-import './App.css'
+import { useState } from 'react';
+import Header from './components/Head';
+import HomeHero from './components/HomeHero';
+import ResultItems from './components/ResultItems';
+import { ResultItem } from './types';
+import './App.css';
 
 function App() {
-  const [highContrast, setHighContrast] = useState(false)
-  const [activeTab, setActiveTab] = useState<'voice' | 'extractor' | 'dashboard'>('voice')
-
-  const toggleHighContrast = () => {
-    setHighContrast(!highContrast)
-    document.documentElement.classList.toggle('high-contrast', !highContrast)
-  }
+  const [result, setResult] = useState<ResultItem[] | null>(null);
 
   return (
+<<<<<<< HEAD
+<<<<<<< HEAD
     <div className={`app-container ${highContrast ? 'high-contrast' : ''}`}>
       <LandingPage onToggleHighContrast={toggleHighContrast} highContrast={highContrast} />
 
@@ -24,21 +20,21 @@ function App() {
           onClick={() => setActiveTab('voice')}
           aria-label="Voice Interface"
         >
-          🎤 Voice
+          Voice
         </button>
         <button
           className={activeTab === 'extractor' ? 'active' : ''}
           onClick={() => setActiveTab('extractor')}
           aria-label="Product Extractor"
         >
-          📸 Extractor
+          Extractor
         </button>
         <button
           className={activeTab === 'dashboard' ? 'active' : ''}
           onClick={() => setActiveTab('dashboard')}
           aria-label="Usage Dashboard"
         >
-          📊 Stats
+          Stats
         </button>
       </nav>
 
@@ -47,9 +43,19 @@ function App() {
         {activeTab === 'extractor' && <ProductExtractor />}
         {activeTab === 'dashboard' && <Dashboard />}
       </main>
+=======
+=======
+>>>>>>> 38252cac848e758317897f4723758b234d5be1ad
+    <div className="app-container">
+      <Header />
+      <HomeHero onResult={setResult} />
+      {result && <ResultItems results={result} />}
+<<<<<<< HEAD
+>>>>>>> 38252cac848e758317897f4723758b234d5be1ad
+=======
+>>>>>>> 38252cac848e758317897f4723758b234d5be1ad
     </div>
-  )
+  );
 }
 
-export default App
-
+export default App;

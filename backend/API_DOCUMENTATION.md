@@ -119,11 +119,280 @@ Search for products across multiple platforms.
 
 **Notes:**
 - Search results are cached for 30 minutes
-- Scraping is not yet fully implemented (returns mock data)
+- Automatically scrapes all supported platforms
+- Results are stored in database for analytics
+- Supports: Amazon, eBay, AliExpress, Jumia, Konga, Walmart, Best Buy, Etsy, Target, and more
 
 ---
 
-### 4. Get Coupons
+### 4. Get Supported Platforms
+
+**GET** `/api/scrape/platforms`
+
+Get list of all supported scraping platforms.
+
+**Response:**
+```json
+{
+  "platforms": ["amazon", "ebay", "aliexpress", "jumia", "konga", "walmart", "bestbuy", "etsy", "target"],
+  "count": 9,
+  "timestamp": "2024-01-26T10:00:00.000Z"
+}
+```
+
+---
+
+### 5. Scrape Platform (Direct)
+
+**GET** `/api/scrape/:platform/:query`
+
+Dynamically scrape any supported platform.
+
+**URL Parameters:**
+- `platform` - Platform name (amazon, ebay, jumia, konga, aliexpress, walmart, bestbuy, etsy, target)
+- `query` - Search query
+
+**Query Parameters:**
+- `limit` (optional) - Maximum results (default: 20)
+
+**Example Requests:**
+```
+GET /api/scrape/amazon/iPhone?limit=10
+GET /api/scrape/ebay/laptops
+GET /api/scrape/aliexpress/headphones?limit=15
+GET /api/scrape/jumia/phones
+GET /api/scrape/konga/keyboards
+GET /api/scrape/walmart/monitors
+GET /api/scrape/bestbuy/cameras
+GET /api/scrape/etsy/vintage
+GET /api/scrape/target/clothing
+```
+
+**Response:**
+```json
+{
+  "platform": "amazon",
+  "query": "iPhone 15",
+  "products": [
+    {
+      "name": "iPhone 15 Pro 256GB",
+      "price": 999.99,
+      "currency": "USD",
+      "seller": "Amazon",
+      "rating": 4.8,
+      "reviewCount": 1234,
+      "availability": "in_stock",
+      "shipping": 0,
+      "url": "https://amazon.com/...",
+      "platform": "amazon",
+      "extractedAt": "2024-01-26T10:00:00.000Z"
+    }
+  ],
+  "count": 5,
+  "timestamp": "2024-01-26T10:00:00.000Z"
+}
+```
+
+**Error Response (Unsupported Platform):**
+```json
+{
+  "error": "Unsupported platform",
+  "message": "Platform \"invalid\" is not supported. Available: amazon, ebay, aliexpress, jumia, konga, walmart, bestbuy, etsy, target",
+  "supportedPlatforms": ["amazon", "ebay", "aliexpress", "jumia", "konga", "walmart", "bestbuy", "etsy", "target"]
+}
+```
+
+**Platform Details:**
+
+| Platform | Currency | Region | Type |
+|----------|----------|--------|------|
+| Amazon | USD | Global | Retail Giant |
+| eBay | USD | Global | Marketplace |
+| AliExpress | USD | China/Asia | Wholesale |
+| Jumia | NGN | Nigeria/Africa | Regional |
+| Konga | NGN | Nigeria | Regional |
+| Walmart | USD | USA | Retail |
+| Best Buy | USD | USA | Electronics |
+| Etsy | USD | Global | Handmade/Vintage |
+| Target | USD | USA | Retail |
+
+---
+
+### 6. Scrape Individual Platform Endpoints
+
+**GET** `/api/scrape/amazon/:query`
+**GET** `/api/scrape/ebay/:query`
+**GET** `/api/scrape/konga/:query`
+**GET** `/api/scrape/all/:query`
+
+Directly scrape a specific platform or all platforms.
+
+**Query Parameters:**
+- `limit` (optional) - Maximum results per platform (default: 20)
+
+**Response:**
+```json
+{
+  "platform": "amazon",
+  "query": "iPhone 15",
+  "products": [
+    {
+      "name": "iPhone 15 Pro 256GB",
+      "price": 999.99,
+      "currency": "USD",
+      "seller": "Amazon",
+      "rating": 4.8,
+      "reviewCount": 1234,
+      "availability": "in_stock",
+      "shipping": 0,
+      "url": "https://amazon.com/...",
+      "platform": "amazon",
+      "extractedAt": "2024-01-26T10:00:00.000Z"
+    }
+  ],
+  "count": 5,
+  "timestamp": "2024-01-26T10:00:00.000Z"
+}
+```
+
+**Example Requests:**
+```
+GET /api/scrape/amazon/iPhone?limit=10
+GET /api/scrape/jumia/phones?limit=15
+GET /api/scrape/konga/laptops
+GET /api/scrape/all/headphones?limit=20
+```
+
+---
+
+### 6. Scrape All Platforms
+
+**GET** `/api/scrape/all/:query`
+**POST** `/api/scrape/all/:query`
+
+Scrape all supported platforms simultaneously.
+
+**Query Parameters:**
+- `limit` (optional) - Maximum results per platform (default: 20)
+- `platforms` (optional) - Comma-separated list of platforms to scrape (default: all)
+
+**POST Body (optional):**
+```json
+{
+  "platforms": ["amazon", "ebay", "jumia"]
+}
+```
+
+**Response:**
+```json
+{
+  "query": "iPhone 15",
+  "platforms": [
+    {
+      "platform": "amazon",
+      "count": 10,
+      "products": [...]
+    },
+    {
+      "platform": "ebay",
+      "count": 8,
+      "products": [...]
+    },
+    {
+      "platform": "jumia",
+      "count": 5,
+      "products": [...]
+    }
+  ],
+  "totalProducts": 23,
+  "timestamp": "2024-01-26T10:00:00.000Z"
+}
+```
+
+**Example Requests:**
+```
+GET /api/scrape/all/iPhone?limit=10
+GET /api/scrape/all/laptops?platforms=amazon,ebay,aliexpress
+POST /api/scrape/all/phones with {"platforms": ["jumia", "konga", "amazon"]}
+```
+
+---
+
+### 7. Get Recent Scraped Products
+
+**GET** `/api/scrape/recent`
+
+Get recently scraped products from all platforms.
+
+**Query Parameters:**
+- `limit` (optional) - Number of products to return (default: 50)
+- `platform` (optional) - Filter by platform
+
+**Response:**
+```json
+{
+  "count": 50,
+  "products": [
+    {
+      "id": "uuid",
+      "product_name": "iPhone 15",
+      "price": 999.99,
+      "currency": "USD",
+      "seller": "Amazon",
+      "rating": 4.8,
+      "review_count": 1234,
+      "platform": "amazon",
+      "product_url": "https://...",
+      "scraped_at": "2024-01-26T10:00:00.000Z"
+    }
+  ],
+  "timestamp": "2024-01-26T10:00:00.000Z"
+}
+```
+
+**Example Requests:**
+```
+GET /api/scrape/recent?limit=100
+GET /api/scrape/recent?platform=amazon
+GET /api/scrape/recent?limit=50&platform=jumia
+```
+
+---
+
+### 6. Get Scraping Statistics
+
+**GET** `/api/scrape/stats`
+
+Get platform scraping statistics.
+
+**Response:**
+```json
+{
+  "stats": [
+    {
+      "platform": "amazon",
+      "total_products": 1250,
+      "avg_price": 499.50,
+      "min_price": 9.99,
+      "max_price": 5999.99,
+      "avg_rating": 4.3,
+      "unique_sellers": 145,
+      "last_scraped": "2024-01-26T10:00:00.000Z"
+    },
+    {
+      "platform": "jumia",
+      "total_products": 890,
+      ...
+    }
+  ],
+  "totalProducts": 3456,
+  "timestamp": "2024-01-26T10:00:00.000Z"
+}
+```
+
+---
+
+### 7. Get Coupons
 
 **GET** `/api/coupons/:store`
 

@@ -139,7 +139,7 @@ export const ProductExtractor: React.FC = () => {
     return (
         <div className="product-extractor" role="main" aria-label="Product Extractor">
             <div className="extractor-header">
-                <h2>📸 AI Product Extractor</h2>
+                <h2>AI Product Extractor</h2>
                 <p>Capture any product page and let AI extract all the details</p>
             </div>
 
@@ -151,7 +151,7 @@ export const ProductExtractor: React.FC = () => {
                     className="btn btn-primary"
                     aria-label="Capture screenshot"
                 >
-                    📷 Capture Screenshot
+                   Capture Screenshot
                 </button>
 
                 <button
@@ -160,7 +160,7 @@ export const ProductExtractor: React.FC = () => {
                     className="btn btn-secondary"
                     aria-label="Paste from clipboard"
                 >
-                    📋 Paste from Clipboard
+                  Paste from Clipboard
                 </button>
 
                 {screenshot && (
@@ -170,7 +170,7 @@ export const ProductExtractor: React.FC = () => {
                         className="btn btn-success"
                         aria-label="Analyze screenshot"
                     >
-                        {loading ? '⏳ Analyzing...' : '🔍 Analyze This Page'}
+                        {loading ? 'Analyzing...' : ' Analyze This Page'}
                     </button>
                 )}
             </div>
@@ -195,7 +195,7 @@ export const ProductExtractor: React.FC = () => {
                     />
                     {cached && (
                         <div className="cache-badge" aria-label="Results from cache">
-                            ⚡ Cached Result
+                            Cached Result
                         </div>
                     )}
                 </div>
@@ -204,9 +204,9 @@ export const ProductExtractor: React.FC = () => {
             {/* Error Display */}
             {error && (
                 <div className="error-message" role="alert" aria-live="assertive">
-                    <strong>❌ Error:</strong> {error}
+                    <strong>Error:</strong> {error}
                     <button onClick={handleRetry} className="btn btn-small" aria-label="Retry">
-                        🔄 Retry
+                        Retry
                     </button>
                 </div>
             )}
@@ -220,7 +220,7 @@ export const ProductExtractor: React.FC = () => {
                         </h3>
                         {processingTime > 0 && (
                             <span className="processing-time">
-                                ⏱️ Processed in {(processingTime / 1000).toFixed(2)}s
+                                Processed in {(processingTime / 1000).toFixed(2)}s
                             </span>
                         )}
                     </div>
@@ -257,18 +257,18 @@ export const ProductExtractor: React.FC = () => {
                                         </span>
                                         {product.shipping !== null && (
                                             <span className="shipping" aria-label={`Shipping: ${product.currency} ${product.shipping}`}>
-                                                {product.shipping === 0 ? '🚚 Free Shipping' : `+ ${product.currency} ${product.shipping} shipping`}
+                                                {product.shipping === 0 ? 'Free Shipping' : `+ ${product.currency} ${product.shipping} shipping`}
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="seller-section">
                                         <span className="seller" aria-label={`Seller: ${product.seller}`}>
-                                            🏪 {product.seller}
+                                            {product.seller}
                                         </span>
                                         {product.rating !== null && (
                                             <span className="rating" aria-label={`Rating: ${product.rating} out of 5 stars`}>
-                                                ⭐ {product.rating.toFixed(1)}
+                                                {product.rating.toFixed(1)}
                                                 {product.reviewCount && ` (${product.reviewCount} reviews)`}
                                             </span>
                                         )}
@@ -276,7 +276,7 @@ export const ProductExtractor: React.FC = () => {
 
                                     {product.platform && (
                                         <span className="platform" aria-label={`Platform: ${product.platform}`}>
-                                            🌐 {product.platform}
+                                            {product.platform}
                                         </span>
                                     )}
                                 </div>
@@ -289,7 +289,7 @@ export const ProductExtractor: React.FC = () => {
                                     }}
                                     aria-label={`Read details for ${product.name}`}
                                 >
-                                    🔊 Read Details
+                                    Read Details
                                 </button>
                             </li>
                         ))}
@@ -302,10 +302,10 @@ export const ProductExtractor: React.FC = () => {
                 <div className="instructions" role="region" aria-label="Instructions">
                     <h3>How to use:</h3>
                     <ol>
-                        <li>📸 Capture a screenshot of any product listing page</li>
-                        <li>📋 Or paste an image from your clipboard</li>
-                        <li>🔍 Click "Analyze This Page" to extract product information</li>
-                        <li>🔊 Click on any product to hear its details</li>
+                        <li>- Capture a screenshot of any product listing page</li>
+                        <li>- Or paste an image from your clipboard</li>
+                        <li>- Click "Analyze This Page" to extract product information</li>
+                        <li>- Click on any product to hear its details</li>
                     </ol>
                 </div>
             )}
