@@ -11,6 +11,7 @@ function App() {
   return (
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     <div className={`app-container ${highContrast ? 'high-contrast' : ''}`}>
       <LandingPage onToggleHighContrast={toggleHighContrast} highContrast={highContrast} />
 
@@ -46,11 +47,16 @@ function App() {
 =======
 =======
 >>>>>>> 38252cac848e758317897f4723758b234d5be1ad
+=======
+>>>>>>> 38252cac848e758317897f4723758b234d5be1ad
     <div className="app-container">
       <Header />
       <HomeHero onResult={setResult} />
       {result && <ResultItems results={result} />}
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> 38252cac848e758317897f4723758b234d5be1ad
+=======
 >>>>>>> 38252cac848e758317897f4723758b234d5be1ad
 =======
 >>>>>>> 38252cac848e758317897f4723758b234d5be1ad
