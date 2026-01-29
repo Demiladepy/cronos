@@ -17,27 +17,10 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-=======
-=======
->>>>>>> 38252cac848e758317897f4723758b234d5be1ad
-=======
->>>>>>> 38252cac848e758317897f4723758b234d5be1ad
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 38252cac848e758317897f4723758b234d5be1ad
-=======
->>>>>>> 38252cac848e758317897f4723758b234d5be1ad
-=======
->>>>>>> 38252cac848e758317897f4723758b234d5be1ad
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",

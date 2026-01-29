@@ -61,4 +61,3 @@ export default function LandingPage({ onToggleHighContrast, highContrast }: Land
     </div>
   )
 }
-

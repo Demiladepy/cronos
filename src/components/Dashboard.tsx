@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/Dashboard.css';
 
 interface UsageStats {
@@ -11,7 +11,7 @@ interface APIUsage {
     [endpoint: string]: UsageStats;
 }
 
-export const Dashboard: React.FC = () => {
+export default function Dashboard() {
     const [stats, setStats] = useState<APIUsage>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
