@@ -18,6 +18,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
   // 🔒 1. NEW: The Search Lock
   const isSearchLockedRef = useRef(false);
   const isStoppingRef = useRef(false);
+  const stopCooldownRef = useRef(false);
 
   const { transcript, listening, resetTranscript, interimTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition();
 
@@ -32,16 +33,18 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
     utterance.onend = () => {
       isSpeakingRef.current = false;
       setTimeout(() => {
+        // Clear any captured AI speech before restarting listening
+        resetTranscript();
         // Only restart listening if we aren't currently analyzing
         if (!isSearchLockedRef.current) {
             SpeechRecognition.startListening({ continuous: true, interimResults: true });
         }
         if (onEnd) onEnd();
-      }, 300);
+      }, 500); // Increased delay to ensure TTS audio has fully dissipated
     };
     
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [resetTranscript]);
 
   const readLandingPage = useCallback(() => {
     isLandingReadRef.current = true;
@@ -117,8 +120,9 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
     // --- PRIORITY COMMAND: STOP ---
     // This is the ONLY command allowed while analyzing
-    if ((currentSpeech.includes("stop") || currentSpeech.includes("cancel")) && !isStoppingRef.current) {
+    if ((currentSpeech.includes("stop") || currentSpeech.includes("cancel")) && !isStoppingRef.current && !stopCooldownRef.current) {
       isStoppingRef.current = true;
+      stopCooldownRef.current = true;
 
       window.speechSynthesis.cancel();
       setIsAnalyzing(false);
@@ -129,8 +133,12 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       
       resetTranscript();
       SpeechRecognition.stopListening();
-      speak("I have stopped. Standing by.", () => {
+      speak("Paused. Waiting for your next command.", () => {
         isStoppingRef.current = false;
+        // Reset cooldown after 2 seconds to prevent re-triggering from AI's own voice
+        setTimeout(() => {
+          stopCooldownRef.current = false;
+        }, 2000);
         setTimeout(() => SpeechRecognition.startListening({ continuous: true, interimResults: true }), 500);
       });
       return;
