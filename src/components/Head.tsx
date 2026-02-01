@@ -6,7 +6,11 @@ const Head: React.FC = () => {
     <header className="flex items-center justify-between px-4 py-3 md:px-6 border-b border-white/10 bg-[#0b1220]">
       {/* Left: Logo */}
       <div className="flex items-center gap-2">
-        <div className="h-6 w-6 rounded-full bg-blue-500" />
+        <img 
+          src="/logo.png" 
+          alt="Blind Bargain Logo" 
+          className="h-8 w-8 rounded-full object-contain"
+        />
         <span className="text-sm md:text-base font-semibold text-white">Blind Bargain</span>
       </div>
 

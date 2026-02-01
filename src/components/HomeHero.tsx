@@ -80,20 +80,45 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
     }, 30000);
 
     try {
+      console.log('📡 Fetching from backend...');
       const response = await fetch(`http://localhost:3001/api/scrape/all/${encodeURIComponent(query)}`, { 
         signal: abortControllerRef.current.signal 
       });
+      
+      console.log('📥 Response status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
-      const allMergedProducts = data.platforms.flatMap((p: any) => p.products);
+      console.log('📦 Raw backend response:', JSON.stringify(data, null, 2));
+      
+      // Check if platforms exist
+      if (!data.platforms || !Array.isArray(data.platforms)) {
+        console.error('❌ Invalid response structure - no platforms array');
+        throw new Error('Invalid response from backend');
+      }
+      
+      const allMergedProducts = data.platforms.flatMap((p: any) => p.products || []);
+      console.log('🛒 All merged products:', allMergedProducts.length, 'items');
+      console.log('🛒 Products sample:', allMergedProducts.slice(0, 2));
 
       const topSorted: ResultItem[] = allMergedProducts
-        .filter((item: any) => item.price > 0)
+        .filter((item: any) => {
+          const hasPrice = item.price > 0;
+          if (!hasPrice) console.log('⚠️ Filtered out (no price):', item.name);
+          return hasPrice;
+        })
         .map((item: any): ResultItem => ({
           ...item,
-          normalizedPrice: ['amazon', 'aliexpress'].includes(item.vendor.toLowerCase()) ? item.price * 1450 : item.price
+          normalizedPrice: ['amazon', 'aliexpress'].includes(item.vendor?.toLowerCase()) ? item.price * 1450 : item.price
         }))
         .sort((a: ResultItem, b: ResultItem) => (a.normalizedPrice || 0) - (b.normalizedPrice || 0))
         .slice(0, 3);
+
+      console.log('✅ Top sorted results:', topSorted.length, 'items');
+      console.log('✅ Results:', topSorted);
 
       if (topSorted.length > 0) {
         setAllResults(topSorted); 
@@ -107,8 +132,10 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       }
     } catch (err: any) {
       setIsAnalyzing(false);
+      console.error('❌ Search error details:', err);
+      console.error('❌ Error name:', err.name);
+      console.error('❌ Error message:', err.message);
       if (err.name !== 'AbortError') {
-        console.error('Search error:', err);
         speak("Sorry, the search failed. Please try again.");
       }
     } finally {
