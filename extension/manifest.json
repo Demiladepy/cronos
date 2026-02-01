@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Blind Bargain Copilot",
+  "version": "1.2",
+  "description": "Universal voice-activated shopping copilot for all major e-commerce platforms.",
+  "permissions": ["storage", "activeTab", "scripting", "tts"],
+  "host_permissions": [
+    "*://*.jumia.com.ng/*",
+    "*://*.amazon.com/*",
+    "*://*.amazon.co.uk/*",
+    "*://*.konga.com/*",
+    "*://*.aliexpress.com/*",
+    "*://*.ebay.com/*",
+    "*://*.walmart.com/*",
+    "*://*.jiji.ng/*",
+    "*://*.slot.com/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.jumia.com.ng/*",
+        "*://*.amazon.com/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.konga.com/*",
+        "*://*.aliexpress.com/*",
+        "*://*.ebay.com/*",
+        "*://*.walmart.com/*",
+        "*://*.jiji.ng/*",
+        "*://*.slot.com/*",
+        "http://localhost/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_title": "Blind Bargain Copilot Active"
+  }
+}

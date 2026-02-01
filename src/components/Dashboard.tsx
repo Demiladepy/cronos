@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/Dashboard.css';
 
 interface UsageStats {
@@ -11,7 +11,7 @@ interface APIUsage {
     [endpoint: string]: UsageStats;
 }
 
-export default function Dashboard() {
+export const Dashboard: React.FC = () => {
     const [stats, setStats] = useState<APIUsage>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -21,6 +21,9 @@ export default function Dashboard() {
     const fetchStats = async () => {
         try {
             setLoading(true);
+            await fetch(`${API_BASE_URL}/api/track-click/stats`); // For demo, using affiliate stats
+            
+
             const usageResponse = await fetch(`${API_BASE_URL}/api/admin/usage`);
             if (usageResponse.ok) {
                 const data = await usageResponse.json();
@@ -43,8 +46,8 @@ export default function Dashboard() {
     return (
         <div className="dashboard-container">
             <div className="dashboard-header">
-                <h2>📊 Cost & Usage Dashboard</h2>
-                <button onClick={fetchStats} className="btn-refresh">🔄 Refresh</button>
+                <h2>Cost & Usage Dashboard</h2>
+                <button onClick={fetchStats} className="btn-refresh">Refresh</button>
             </div>
 
             <div className="stats-grid">

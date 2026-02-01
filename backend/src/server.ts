@@ -1,132 +1,85 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import analyzeRouter from './routes/analyze.js';
-import searchRouter from './routes/search.js';
+import morgan from 'morgan';
 import scrapeRouter from './routes/scrape.js';
-import couponsRouter from './routes/coupons.js';
-import trackingRouter from './routes/tracking.js';
-import adminRouter from './routes/admin.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { runMigrations } from './db/migrate.js';
-import { WebScraper } from './services/scraper.js';
+import WebScraper  from './services/scraper.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
-app.use(helmet());
+// --- Middleware ---
 
-// CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-    'http://localhost:5173',
-    'http://localhost:3000',
-];
+// Enable CORS for your Vite frontend (Port 5173)
+app.use(cors({ 
+    origin: ['http://localhost:5173', 'http://localhost:3000'], 
+    credentials: true 
+}));
 
-app.use(
-    cors({
-        origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true,
-    })
-);
+// Request logging for debugging (morgan)
+app.use(morgan('dev'));
 
-// Body parsing middleware
-app.use(express.json({ limit: '50mb' })); // Large limit for base64 images
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Body parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Logging middleware
-app.use(morgan('combined'));
+// --- Routes ---
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '3600000'), // 1 hour
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-app.use('/api/', limiter);
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-    });
-});
-
-// API routes
-app.use('/api/analyze', analyzeRouter);
-app.use('/api/search', searchRouter);
+// The dedicated router for your scraping logic
 app.use('/api/scrape', scrapeRouter);
-app.use('/api/coupons', couponsRouter);
-app.use('/api/track-click', trackingRouter);
-app.use('/api/admin', adminRouter);
 
-// 404 handler
-app.use((req, res) => {
-    res.status(404).json({
-        error: 'Not Found',
-        message: `Route ${req.method} ${req.path} not found`,
-        statusCode: 404,
+// Basic health check to verify server status
+app.get('/health', (req: Request, res: Response) => {
+    res.json({ 
+        status: 'healthy',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
     });
 });
 
-// Error handling middleware (must be last)
-app.use(errorHandler);
+// --- Server Lifecycle & Cleanup ---
 
-// Start server
-async function startServer() {
+const server = app.listen(PORT, () => {
+    console.log(`\n🚀 BlindBargain Backend is Live!`);
+    console.log(`📡 Port: ${PORT}`);
+    console.log(`📍 Health Check: http://localhost:${PORT}/health`);
+    console.log(`🔗 API Endpoint: http://localhost:${PORT}/api/scrape/all/:query\n`);
+});
+
+/**
+ * Graceful Shutdown Handler
+ * This ensures Puppeteer and the Express server close cleanly.
+ */
+const gracefulShutdown = async (signal: string) => {
+    console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
+
+    // 1. Close the browser instance to release memory
     try {
-        // Skip database migrations for MVP (PostgreSQL not required)
-        console.log('⏭️  Skipping database migrations ');
-        // await runMigrations();;
-
-        const server = app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
-            console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-            console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-            console.log(`🔗 API base URL: http://localhost:${PORT}/api`);
-        });
-
-        // Graceful shutdown
-        process.on('SIGTERM', async () => {
-            console.log('⏸️  SIGTERM received, shutting down gracefully...');
-            server.close(async () => {
-                console.log('✅ Server closed');
-                await WebScraper.closeBrowser();
-                process.exit(0);
-            });
-        });
-
-        process.on('SIGINT', async () => {
-            console.log('⏸️  SIGINT received, shutting down gracefully...');
-            server.close(async () => {
-                console.log('✅ Server closed');
-                await WebScraper.closeBrowser();
-                process.exit(0);
-            });
-        });
-    } catch (error) {
-        console.error('❌ Failed to start server:', error);
         await WebScraper.closeBrowser();
-        process.exit(1);
+        console.log('✅ Puppeteer browser closed.');
+    } catch (err) {
+        console.error('❌ Error closing Puppeteer:', err);
     }
-}
 
-startServer();
+    // 2. Stop accepting new HTTP requests
+    server.close(() => {
+        console.log('✅ HTTP server closed.');
+        
+        // 3. Exit the process (0 = success)
+        process.exit(0);
+    });
+
+    // Forced shutdown if cleanup takes too long (e.g., 10 seconds)
+    setTimeout(() => {
+        console.error('⚠️  Forced shutdown: Cleanup took too long.');
+        process.exit(1);
+    }, 10000);
+};
+
+// Listen for termination signals (Ctrl+C or Process Kill)
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 export default app;

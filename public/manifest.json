@@ -1,22 +1,27 @@
 {
   "name": "Blind Bargain",
   "short_name": "BlindBargain",
-  "description": "Voice-activated AI shopping agent",
-  "theme_color": "#4F46E5",
-  "background_color": "#FFFFFF",
+  "description": "Voice-activated AI shopping agent for hands-free bargain hunting.",
+  "id": "/index.html",
+  "theme_color": "#0b1220",
+  "background_color": "#0b1220",
   "display": "standalone",
+  "orientation": "portrait",
   "start_url": "/",
+  "scope": "/",
+  "categories": ["shopping", "productivity"],
   "icons": [
     {
       "src": "pwa-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "pwa-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
-

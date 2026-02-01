@@ -1,4 +1,3 @@
-
 export interface AnalyzingModalProps {
   isOpen: boolean;
   progress: number; 
@@ -12,6 +11,7 @@ export interface ResultItem {
   price: number;
   vendor: string;
   url: string;
+  normalizedPrice?: number;
 }
 
 export interface HomeHeroProps {
@@ -95,3 +95,4 @@ export interface VoiceCommand {
   maxPrice?: number;
   minPrice?: number;
 }
+

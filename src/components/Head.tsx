@@ -1,14 +1,7 @@
 import React from 'react';
-import { HistoryIcon, Sun, Moon } from 'lucide-react';
+import { Settings, HistoryIcon } from 'lucide-react';
 
-// 1. Define the interface
-interface HeaderProps {
-  onToggleHighContrast: () => void;
-  highContrast: boolean;
-}
-
-// 2. Pass the interface to React.FC<HeaderProps>
-const Header: React.FC<HeaderProps> = ({ onToggleHighContrast, highContrast }) => {
+const Head: React.FC = () => {
   return (
     <header className="flex items-center justify-between px-4 py-3 md:px-6 border-b border-white/10 bg-[#0b1220]">
       {/* Left: Logo */}
@@ -19,24 +12,22 @@ const Header: React.FC<HeaderProps> = ({ onToggleHighContrast, highContrast }) =
 
       {/* Right: Actions */}
       <div className="flex items-center gap-5">
-        {/* Toggle Button using the props you passed */}
-        <button
-          onClick={onToggleHighContrast}
-          aria-label="Toggle High Contrast"
+        { <button
+          aria-label="Settings"
           className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-white/10 text-white"
         >
-          {highContrast ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-
+          <Settings size={24} />
+        </button> }
         <button
-          aria-label="History"
-          className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-white/10 text-white"
+          aria-label="Help"
+          className="h-8 w-8 flex items-center justify-center gap-4 rounded-md hover:bg-white/10 text-white"
         >
-          <HistoryIcon size={20} />
+          
+          <HistoryIcon />
         </button>
       </div>
     </header>
   );
 };
 
-export default Header;
+export default Head;
