@@ -37,7 +37,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
         resetTranscript();
         // Only restart listening if we aren't currently analyzing
         if (!isSearchLockedRef.current) {
-            SpeechRecognition.startListening({ continuous: true, interimResults: true });
+            SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' });
         }
         if (onEnd) onEnd();
       }, 500); // Increased delay to ensure TTS audio has fully dissipated
@@ -95,6 +95,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
         setAllResults(topSorted); 
         onResult(topSorted);
         setProgress(100);
+        setIsAnalyzing(false);
         speak(`I found the top result on ${topSorted[0].vendor} for ${topSorted[0].price}. Command me to proceed to checkout.`);
       } else {
         setIsAnalyzing(false);
@@ -107,7 +108,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
         clearTimeout(lockTimeout);
         isSearchLockedRef.current = false;
         // Restart listening safely
-        setTimeout(() => SpeechRecognition.startListening({ continuous: true }), 500);
+        setTimeout(() => SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' }), 500);
     }
   };
 
@@ -139,7 +140,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
         setTimeout(() => {
           stopCooldownRef.current = false;
         }, 2000);
-        setTimeout(() => SpeechRecognition.startListening({ continuous: true, interimResults: true }), 500);
+        setTimeout(() => SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' }), 500);
       });
       return;
     }
@@ -147,8 +148,25 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
     // 🛑 4. BUSY GUARD: If searching, ignore all other commands
     if (isSearchLockedRef.current || isAnalyzing) return;
 
-    // --- WAKE WORD ---
-    if (!isVoiceGuided && (currentSpeech.includes("blind bargain") || currentSpeech.includes("hey bargain"))) {
+    // --- PRODUCT CAPTURE (moved before isVoiceGuided check for button-triggered flows) ---
+    if (isWaitingForProductRef.current && transcript.trim().length > 1) {
+      const query = transcript.trim();
+      isWaitingForProductRef.current = false;
+      resetTranscript();
+      SpeechRecognition.stopListening();
+      handleStartAnalyze(query);
+      return;
+    }
+
+    // --- WAKE WORD (with flexible matching for Nigerian accents) ---
+    if (!isVoiceGuided && (
+      currentSpeech.includes("blind bargain") || 
+      currentSpeech.includes("hey bargain") ||
+      currentSpeech.includes("hey blind") ||
+      currentSpeech.includes("line bargain") ||  // Common mishearing
+      currentSpeech.includes("blind begun") ||   // Common mishearing
+      currentSpeech.endsWith("bargain")          // Catch partial wake words
+    )) {
       setIsVoiceGuided(true);
       resetTranscript();
       if (!isLandingReadRef.current) {
@@ -161,24 +179,21 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
     if (!isVoiceGuided) return;
 
-    // --- COMMANDS ---
-    if (currentSpeech.includes("click get my bargain") || currentSpeech.includes("click the blue button")) {
+    // --- COMMANDS (with flexible matching for Nigerian accents) ---
+    if (
+      currentSpeech.includes("click get my bargain") || 
+      currentSpeech.includes("click the blue button") ||
+      currentSpeech.includes("get my bargain") ||
+      currentSpeech.includes("get bargain") ||
+      currentSpeech.includes("my bargain") ||
+      currentSpeech.includes("click bargain")
+    ) {
       resetTranscript();
       const button = document.querySelector('button[class*="bg-blue-600"]') as HTMLElement;
       if (button) button.click();
       speak("Clicking Get My Bargain. What product should I look for?", () => {
         isWaitingForProductRef.current = true;
       });
-      return;
-    }
-
-    if (isWaitingForProductRef.current && transcript.length > 2) {
-      const query = transcript;
-      isWaitingForProductRef.current = false;
-      resetTranscript();
-      SpeechRecognition.stopListening();
-      setTimeout(() => SpeechRecognition.startListening({ continuous: true }), 100);
-      handleStartAnalyze(query);
       return;
     }
 
@@ -194,7 +209,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
   }, [transcript, interimTranscript, isVoiceGuided, allResults, isAnalyzing, speak, readLandingPage, resetTranscript, onResult]);
 
   useEffect(() => {
-    SpeechRecognition.startListening({ continuous: true, interimResults: true });
+    SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' });
   }, []);
 
   if (!browserSupportsSpeechRecognition) return null;
@@ -210,14 +225,20 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
         <h1 className="max-w-xl text-2xl md:text-4xl font-bold leading-tight mb-8">Find a better deal for the product on your current tab.</h1>
 
         <button 
-          onClick={() => speak("Manual trigger. What should I search for?", () => { isWaitingForProductRef.current = true; })} 
+          onClick={() => {
+            setIsVoiceGuided(true);
+            speak("What should I search for?", () => { isWaitingForProductRef.current = true; });
+          }} 
           className="mb-4 w-full max-w-sm rounded-lg bg-blue-600 py-3 text-sm font-semibold hover:bg-blue-500 transition disabled:opacity-50"
         >
           GET MY BARGAIN
         </button>
 
         <button 
-          onClick={() => speak("Voice search active. What are you looking for?", () => { isWaitingForProductRef.current = true; })} 
+          onClick={() => {
+            setIsVoiceGuided(true);
+            speak("Voice search active. What are you looking for?", () => { isWaitingForProductRef.current = true; });
+          }} 
           className="mb-6 w-full max-w-sm rounded-lg border border-white/20 py-3 flex items-center justify-center gap-2 hover:bg-white/10 transition"
         >
           {listening ? <MicOff size={20} className="text-red-400" /> : <Mic size={20} />} 
