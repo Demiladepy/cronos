@@ -26,21 +26,31 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
     window.speechSynthesis.cancel();
     isSpeakingRef.current = true;
     SpeechRecognition.stopListening(); 
+    // Clear transcript immediately when starting to speak
+    resetTranscript();
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
     
     utterance.onend = () => {
       isSpeakingRef.current = false;
+      // Wait 1 second for audio to fully dissipate before doing anything
       setTimeout(() => {
-        // Clear any captured AI speech before restarting listening
+        // Clear any captured AI speech again before restarting listening
         resetTranscript();
-        // Only restart listening if we aren't currently analyzing
-        if (!isSearchLockedRef.current) {
-            SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' });
-        }
+        
+        // Call the callback FIRST (before restarting mic)
+        // This allows setting flags like isWaitingForProductRef
         if (onEnd) onEnd();
-      }, 500); // Increased delay to ensure TTS audio has fully dissipated
+        
+        // Then restart listening with a small additional delay
+        setTimeout(() => {
+          if (!isSearchLockedRef.current) {
+            resetTranscript(); // Clear one more time right before listening
+            SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' });
+          }
+        }, 300);
+      }, 1000); // Increased to 1 second to ensure TTS audio has fully dissipated
     };
     
     window.speechSynthesis.speak(utterance);
@@ -225,9 +235,10 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       currentSpeech.includes("click bargain")
     ) {
       resetTranscript();
-      // Set waiting flag BEFORE speaking so it's ready when user responds
-      isWaitingForProductRef.current = true;
-      speak("What product should I look for?");
+      // Speak first, then set waiting flag AFTER speech ends
+      speak("What product should I look for?", () => {
+        isWaitingForProductRef.current = true;
+      });
       return;
     }
 
@@ -263,9 +274,10 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
             // Clear any stale transcript immediately
             resetTranscript();
             setIsVoiceGuided(true);
-            // Set waiting flag BEFORE speaking so it's ready when user responds
-            isWaitingForProductRef.current = true;
-            speak("What should I search for?");
+            // Speak first, then set waiting flag AFTER speech ends
+            speak("What should I search for?", () => {
+              isWaitingForProductRef.current = true;
+            });
           }} 
           className="mb-4 w-full max-w-sm rounded-lg bg-blue-600 py-3 text-sm font-semibold hover:bg-blue-500 transition disabled:opacity-50"
         >
@@ -277,9 +289,10 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
             // Clear any stale transcript immediately
             resetTranscript();
             setIsVoiceGuided(true);
-            // Set waiting flag BEFORE speaking so it's ready when user responds
-            isWaitingForProductRef.current = true;
-            speak("Voice search active. What are you looking for?");
+            // Speak first, then set waiting flag AFTER speech ends
+            speak("Voice search active. What are you looking for?", () => {
+              isWaitingForProductRef.current = true;
+            });
           }} 
           className="mb-6 w-full max-w-sm rounded-lg border border-white/20 py-3 flex items-center justify-center gap-2 hover:bg-white/10 transition"
         >
