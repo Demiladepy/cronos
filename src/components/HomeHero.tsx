@@ -57,7 +57,11 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
   const handleStartAnalyze = async (query: string) => {
     // 🛑 2. GUARD: Prevent double-firing
-    if (isSearchLockedRef.current || !query || query.length < 2) return;
+    if (isSearchLockedRef.current || !query || query.length < 2) {
+      console.log('⚠️ Search blocked:', { locked: isSearchLockedRef.current, query, length: query?.length });
+      return;
+    }
+    console.log('🔍 Starting search for:', query);
 
     // Lock the search
     isSearchLockedRef.current = true;
@@ -102,7 +106,11 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
         speak("I found nothing. Command me to search for something else.");
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') setIsAnalyzing(false);
+      setIsAnalyzing(false);
+      if (err.name !== 'AbortError') {
+        console.error('Search error:', err);
+        speak("Sorry, the search failed. Please try again.");
+      }
     } finally {
         // 🔓 3. UNLOCK: Always release the lock when done
         clearTimeout(lockTimeout);
@@ -151,6 +159,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
     // --- PRODUCT CAPTURE (moved before isVoiceGuided check for button-triggered flows) ---
     if (isWaitingForProductRef.current && transcript.trim().length > 1) {
       const query = transcript.trim();
+      console.log('🎯 Product captured:', query);
       isWaitingForProductRef.current = false;
       resetTranscript();
       SpeechRecognition.stopListening();
@@ -189,11 +198,9 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       currentSpeech.includes("click bargain")
     ) {
       resetTranscript();
-      const button = document.querySelector('button[class*="bg-blue-600"]') as HTMLElement;
-      if (button) button.click();
-      speak("Clicking Get My Bargain. What product should I look for?", () => {
-        isWaitingForProductRef.current = true;
-      });
+      // Set waiting flag BEFORE speaking so it's ready when user responds
+      isWaitingForProductRef.current = true;
+      speak("What product should I look for?");
       return;
     }
 
@@ -226,8 +233,12 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
         <button 
           onClick={() => {
+            // Clear any stale transcript immediately
+            resetTranscript();
             setIsVoiceGuided(true);
-            speak("What should I search for?", () => { isWaitingForProductRef.current = true; });
+            // Set waiting flag BEFORE speaking so it's ready when user responds
+            isWaitingForProductRef.current = true;
+            speak("What should I search for?");
           }} 
           className="mb-4 w-full max-w-sm rounded-lg bg-blue-600 py-3 text-sm font-semibold hover:bg-blue-500 transition disabled:opacity-50"
         >
@@ -236,8 +247,12 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
         <button 
           onClick={() => {
+            // Clear any stale transcript immediately
+            resetTranscript();
             setIsVoiceGuided(true);
-            speak("Voice search active. What are you looking for?", () => { isWaitingForProductRef.current = true; });
+            // Set waiting flag BEFORE speaking so it's ready when user responds
+            isWaitingForProductRef.current = true;
+            speak("Voice search active. What are you looking for?");
           }} 
           className="mb-6 w-full max-w-sm rounded-lg border border-white/20 py-3 flex items-center justify-center gap-2 hover:bg-white/10 transition"
         >
