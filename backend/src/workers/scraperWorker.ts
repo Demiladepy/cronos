@@ -1,128 +1,165 @@
 import { parentPort, workerData } from 'worker_threads';
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer from 'puppeteer-extra'; 
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
-type Product = {
+// 1. ENABLE STEALTH (Crucial for Jumia/Amazon)
+puppeteer.use(StealthPlugin());
+
+interface Strategy {
+  container: string;
   name: string;
-  price: number;
-  url: string;
-  vendor: string;
-};
+  price: string;
+  link: string;
+}
 
 async function scrape() {
   const { platform, query } = workerData as { platform: string; query: string };
-  let browser: Browser | null = null;
+  let browser: any = null;
 
   try {
+    // 🚀 LAUNCH: Memory Only, No Disk Cache
     browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+        '--window-size=1280,800',
+        '--disable-extensions'
+      ]
     });
 
-    const page: Page = await browser.newPage();
+    const page = await browser.newPage();
+    
+    // Standard User Agent
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    let url = '';
-    let selector = '';
+    // ⚡ SPEED BOOST: Block heavy resources & trackers
+    await page.setRequestInterception(true);
+    page.on('request', (req: any) => {
+       const rType = req.resourceType();
+       const url = req.url();
 
-    // Configuration for each platform
+       // 1. Block Heavy Media
+       if (['image', 'media', 'font', 'stylesheet'].includes(rType)) {
+         req.abort();
+         return;
+       }
+
+       // 2. Block Specific Trackers (The real speed killers)
+       if (url.includes('google-analytics') || 
+           url.includes('facebook') || 
+           url.includes('doubleclick') || 
+           url.includes('googletagmanager') || 
+           url.includes('criteo') || 
+           url.includes('hotjar') ||
+           url.includes('bing') ||
+           url.includes('twitter')) {
+         req.abort();
+         return;
+       }
+
+       req.continue();
+    });
+
+    let url = '';
+    let strategies: Strategy[] = [];
+
     switch (platform.toLowerCase()) {
       case 'jumia':
         url = `https://www.jumia.com.ng/catalog/?q=${encodeURIComponent(query)}`;
-        selector = 'article.prd';
+        strategies = [{ container: 'article.prd', name: '.name', price: '.prc', link: 'a.core' }];
         break;
       case 'konga':
         url = `https://www.konga.com/search?search=${encodeURIComponent(query)}`;
-        selector = 'li.abt';
+        strategies = [{ container: 'li.abt', name: 'div._4941f_1HCZm', price: 'span._4e81a_39Ehs', link: 'a' }];
         break;
       case 'amazon':
         url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}`;
-        selector = '[data-component-type="s-search-result"]';
-        break;
-      case 'slot':
-        url = `https://slot.ng/catalogsearch/result/?q=${encodeURIComponent(query)}`;
-        selector = '.product-item-info';
+        strategies = [{ container: '[data-component-type="s-search-result"]', name: 'h2', price: '.a-price-whole', link: 'a.a-link-normal' }];
         break;
       case 'jiji':
         url = `https://jiji.ng/search?query=${encodeURIComponent(query)}`;
-        selector = '.b-list-advert-base';
+        strategies = [{ container: '.b-list-advert-base', name: '.b-advert-title-inner', price: '.qa-advert-price', link: 'a' }];
+        break;
+      case 'slot':
+        url = `https://slot.ng/catalogsearch/result/?q=${encodeURIComponent(query)}`;
+        strategies = [{ container: '.product-item-info', name: '.product-item-link', price: '.price', link: '.product-item-link' }];
         break;
       case 'aliexpress':
         url = `https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(query)}`;
-        selector = '[data-product-id]';
+        strategies = [{ container: '.search-item-card-wrapper-gallery', name: 'h1', price: 'span', link: 'a' }];
         break;
-      default:
-        parentPort?.postMessage({ platform, products: [] });
-        return;
     }
 
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
-    // Use a reasonable timeout for dynamic content
-    await page.waitForSelector(selector, { timeout: 7000 });
+    // 2. NAVIGATION (Soft Timeout 20s)
+    try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    } catch(e) {
+        console.log(`⚠️ [${platform}] Timeout (20s). Checking content anyway...`);
+    }
 
-    // FIX: Passing a standard arrow function to evaluate
-    const products = await page.evaluate((sel, vendorName) => {
-      const normalizeUrl = (link: string | null, base: string) => {
-        if (!link) return '';
-        if (link.startsWith('http')) return link;
-        if (link.startsWith('//')) return 'https:' + link;
-        return base + (link.startsWith('/') ? link : '/' + link);
-      };
-
-      const items = Array.from((globalThis as any).document.querySelectorAll(sel)).slice(0, 5);
-
-      return items.map((item: any) => {
-        let name = '';
-        let priceText = '';
-        let link = '';
-
+    let products: any[] = [];
+    
+    // 3. SCRAPE
+    for (const strategy of strategies) {
         try {
-          if (vendorName === 'jumia') {
-            name = item.querySelector('.name')?.textContent || '';
-            priceText = item.querySelector('.prc')?.textContent || '';
-            link = normalizeUrl(item.querySelector('a.core')?.getAttribute('href'), 'https://www.jumia.com.ng');
-          } else if (vendorName === 'konga') {
-            name = item.querySelector('div._4941f_1HCZm')?.textContent || '';
-            priceText = item.querySelector('span._4e81a_39Ehs')?.textContent || '';
-            link = normalizeUrl(item.querySelector('a')?.getAttribute('href'), 'https://www.konga.com');
-          } else if (vendorName === 'amazon') {
-            name = item.querySelector('h2 span')?.textContent || '';
-            priceText = item.querySelector('.a-price-whole')?.textContent || '';
-            link = normalizeUrl(item.querySelector('h2 a')?.getAttribute('href'), 'https://www.amazon.com');
-          } else if (vendorName === 'slot') {
-            name = item.querySelector('.product-item-link')?.textContent || '';
-            priceText = item.querySelector('.price')?.textContent || '';
-            link = normalizeUrl(item.querySelector('.product-item-link')?.getAttribute('href'), 'https://slot.ng');
-          } else if (vendorName === 'jiji') {
-            name = item.querySelector('.b-advert-title-inner')?.textContent || '';
-            priceText = item.querySelector('.qa-advert-price')?.textContent || '';
-            link = normalizeUrl(item.querySelector('a')?.getAttribute('href'), 'https://jiji.ng');
-          } else if (vendorName === 'aliexpress') {
-            name = item.querySelector('h1')?.textContent || item.innerText.split('\n')[0] || '';
-            priceText = item.innerText.match(/₦[\d,]+/)?.[0] || '';
-            link = normalizeUrl(item.querySelector('a')?.getAttribute('href'), 'https://www.aliexpress.com');
-          }
-        } catch (e) {}
+            // Wait max 4 seconds for list
+            try { await page.waitForSelector(strategy.container, { timeout: 4000 }); } catch(e) {}
 
-        const price = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+            const items = await page.evaluate((strat: any, vendor: string) => {
+                const doc = (globalThis as any).document;
+                const els = Array.from(doc.querySelectorAll(strat.container)).slice(0, 10);
+                
+                return els.map((el: any) => {
+                    const name = el.querySelector(strat.name)?.textContent?.trim() || 'Unknown';
+                    const priceRaw = el.querySelector(strat.price)?.textContent?.trim() || '0';
+                    let link = el.querySelector(strat.link)?.getAttribute('href') || '';
+                    
+                    if (link && !link.startsWith('http')) {
+                         if (vendor === 'jumia') link = `https://www.jumia.com.ng${link.startsWith('/') ? '' : '/'}${link}`;
+                         else if (vendor === 'konga') link = `https://www.konga.com${link.startsWith('/') ? '' : '/'}${link}`;
+                         else if (vendor === 'slot') link = link; 
+                         else if (vendor === 'jiji') link = `https://jiji.ng${link.startsWith('/') ? '' : '/'}${link}`;
+                         else if (vendor === 'amazon') link = `https://www.amazon.com${link.startsWith('/') ? '' : '/'}${link}`;
+                         else if (vendor === 'aliexpress') link = `https://www.aliexpress.com${link.startsWith('/') ? '' : '/'}${link}`;
+                    }
 
-        return {
-          name: name.trim(),
-          price,
-          url: link,
-          vendor: vendorName
-        };
-      }).filter((p) => p.price > 0 && p.name.length > 2);
-    }, selector, platform.toLowerCase());
+                    const price = parseFloat(priceRaw.replace(/[^0-9.]/g, '')) || 0;
+                    return { name, price, url: link, vendor };
+                });
+            }, strategy, platform.toLowerCase());
 
+            if (items.length > 0) {
+                // 🛑 ACCESSORY FILTER
+                const lowerQuery = query.toLowerCase();
+                const wantsAccessory = lowerQuery.includes('case') || lowerQuery.includes('screen') || lowerQuery.includes('charger');
+
+                products = items.filter((p: any) => {
+                    if (p.price === 0 || p.name === 'Unknown') return false;
+                    // Filter out cases/screens if user asked for a phone
+                    if (!wantsAccessory) {
+                        const name = p.name.toLowerCase();
+                        if (name.includes('case') || name.includes('screen protector') || name.includes('cover') || name.includes('glass')) return false; 
+                    }
+                    return true;
+                }).slice(0, 5); 
+
+                break;
+            }
+        } catch (e) { }
+    }
+
+    console.log(`✅ [${platform}] Found ${products.length} items`);
     parentPort?.postMessage({ platform, products });
 
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    parentPort?.postMessage({ platform, products: [], error: message });
+  } catch (error: any) {
+    console.error(`❌ [${platform}] Error:`, error.message);
+    parentPort?.postMessage({ platform, error: error.message, products: [] });
   } finally {
-    if (browser) {
-      await (browser as Browser).close().catch(() => {});
-    }
+    if (browser) await browser.close().catch(() => {});
   }
 }
 

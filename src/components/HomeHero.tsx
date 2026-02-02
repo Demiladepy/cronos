@@ -4,6 +4,13 @@ import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognitio
 import AnalyzingModal from './AnalyzingModal';
 import { HomeHeroProps, ResultItem } from '../types';
 
+
+declare global {
+  interface Window {
+    searchTimer: any;
+  }
+}
+
 const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -25,6 +32,8 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
     window.speechSynthesis.cancel();
     isSpeakingRef.current = true; // Lock immediately
     SpeechRecognition.stopListening(); 
+    // Clear transcript immediately when starting to speak
+    resetTranscript();
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
@@ -42,6 +51,8 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
         if (onEnd) onEnd();
       }, 800); 
     };
+
+    
     
     window.speechSynthesis.speak(utterance);
   }, [resetTranscript]);
@@ -57,6 +68,10 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
   const handleStartAnalyze = async (query: string) => {
     if (isSearchLockedRef.current || !query || query.length < 2) return;
+    console.log('⚠️ Search blocked:', { locked: isSearchLockedRef.current, query, length: query?.length });
+
+
+    console.log('🔍 Starting search for:', query);
 
     isSearchLockedRef.current = true;
     abortControllerRef.current = new AbortController();
@@ -66,20 +81,45 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
     speak(`Searching for ${query}.`);
 
     try {
+      console.log('📡 Fetching from backend...');
       const response = await fetch(`http://localhost:3001/api/scrape/all/${encodeURIComponent(query)}`, { 
         signal: abortControllerRef.current.signal 
       });
+      
+      console.log('📥 Response status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
-      const allMergedProducts = data.platforms.flatMap((p: any) => p.products);
+      console.log('📦 Raw backend response:', JSON.stringify(data, null, 2));
+      
+      // Check if platforms exist
+      if (!data.platforms || !Array.isArray(data.platforms)) {
+        console.error('❌ Invalid response structure - no platforms array');
+        throw new Error('Invalid response from backend');
+      }
+      
+      const allMergedProducts = data.platforms.flatMap((p: any) => p.products || []);
+      console.log('All merged products:', allMergedProducts.length, 'items');
+      console.log('Products sample:', allMergedProducts.slice(0, 2));
 
       const topSorted: ResultItem[] = allMergedProducts
-        .filter((item: any) => item.price > 0)
+        .filter((item: any) => {
+          const hasPrice = item.price > 0;
+          if (!hasPrice) console.log('⚠️ Filtered out (no price):', item.name);
+          return hasPrice;
+        })
         .map((item: any): ResultItem => ({
           ...item,
-          normalizedPrice: ['amazon', 'aliexpress'].includes(item.vendor.toLowerCase()) ? item.price * 1450 : item.price
+          normalizedPrice: ['amazon', 'aliexpress'].includes(item.vendor?.toLowerCase()) ? item.price * 1450 : item.price
         }))
         .sort((a: ResultItem, b: ResultItem) => (a.normalizedPrice || 0) - (b.normalizedPrice || 0))
         .slice(0, 3);
+
+      console.log('✅ Top sorted results:', topSorted.length, 'items');
+      console.log('✅ Results:', topSorted);
 
       if (topSorted.length > 0) {
         setAllResults(topSorted); 
@@ -93,6 +133,9 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       }
     } catch (err: any) {
       setIsAnalyzing(false);
+      console.error('❌ Search error details:', err);
+      console.error('❌ Error name:', err.name);
+      console.error('❌ Error message:', err.message);
       if (err.name !== 'AbortError') {
         speak("Sorry, the search failed. Please try again.");
       }
@@ -103,7 +146,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
   };
 
   useEffect(() => {
-    // 1. HARD GUARD: If AI is talking, do absolutely nothing.
+    // 1.  GUARD: If AI is talking, do absolutely nothing.
     if (isSpeakingRef.current) return;
 
     const currentSpeech = (transcript + " " + interimTranscript).toLowerCase().trim();
@@ -131,18 +174,28 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
     // 4. PRODUCT CAPTURE (The fix for auto-searching AI's voice)
     if (isWaitingForProductRef.current) {
-      if (transcript.trim().length > 2) {
-        const query = transcript.trim();
+      const cleanTranscript = transcript.trim();
+      
+      // Only start the timer if we actually have some text
+      if (cleanTranscript.length > 2) {
         
-        // Anti-Feedback Filter: If the "query" is actually the AI's prompt, ignore it.
-        const aiVoicesCaught = ["what product", "search for", "look for", "your command", "voice search active"];
-        const isActuallyAiTalking = aiVoicesCaught.some(phrase => query.toLowerCase().includes(phrase));
+        // 🛑 Clear the previous timer (User is still talking!)
+        if (window.searchTimer) clearTimeout(window.searchTimer);
 
-        if (!isActuallyAiTalking) {
-          isWaitingForProductRef.current = false;
-          resetTranscript();
-          handleStartAnalyze(query);
-        }
+        // ⏱️ Set a new timer: Wait 1.5 seconds after the LAST word
+        window.searchTimer = setTimeout(() => {
+            const aiVoicesCaught = ["what product", "search for", "look for", "your command"];
+            const isActuallyAiTalking = aiVoicesCaught.some(phrase => cleanTranscript.toLowerCase().includes(phrase));
+
+            if (!isActuallyAiTalking) {
+                // LOCK IT DOWN
+                isWaitingForProductRef.current = false;
+                resetTranscript();
+                
+                // Execute Search
+                handleStartAnalyze(cleanTranscript);
+            }
+        }, 1500);
       }
       return;
     }
@@ -178,10 +231,40 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       return;
     }
 
-    if (allResults.length > 0 && (currentSpeech.includes("proceed") || currentSpeech.includes("checkout"))) {
+    // 7. CHECKOUT / PROCEED (The Fix)
+    if (allResults.length > 0 && (currentSpeech.includes("proceed") || currentSpeech.includes("yes") || currentSpeech.includes("checkout"))) {
       resetTranscript();
-      speak("Opening store page.");
-      window.open(`${allResults[0].url}#blindbargain`, '_blank');
+      
+      const product = allResults[0];
+      let targetUrl = product.url;
+
+      
+      if (!targetUrl.startsWith('http')) {
+        const domainMap: Record<string, string> = {
+          'jumia': 'https://www.jumia.com.ng',
+          'konga': 'https://www.konga.com',
+          'amazon': 'https://www.amazon.com',
+          'jiji': 'https://jiji.ng',
+          'aliexpress': 'https://www.aliexpress.com'
+        };
+
+        const vendorKey = product.vendor.toLowerCase();
+        const baseUrl = domainMap[vendorKey];
+
+        if (baseUrl) {
+          const cleanPath = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`;
+          targetUrl = `${baseUrl}${cleanPath}`;
+        } else {
+          // Fallback: If unknown vendor, Google it
+          targetUrl = `https://www.google.com/search?q=${encodeURIComponent(product.name)}`;
+        }
+      }
+
+      speak(`Opening ${product.vendor} product page.`);
+      
+      // Open the sanitized ABSOLUTE URL
+      window.open(`${targetUrl}#blindbargain`, '_blank');
+      return;
       return;
     }
 
@@ -208,9 +291,10 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
             // Clear any stale transcript immediately
             resetTranscript();
             setIsVoiceGuided(true);
-            // Set waiting flag BEFORE speaking so it's ready when user responds
-            isWaitingForProductRef.current = true;
-            speak("What should I search for?");
+            // Speak first, then set waiting flag AFTER speech ends
+            speak("What should I search for?", () => {
+              isWaitingForProductRef.current = true;
+            });
           }} 
           className="mb-4 w-full max-w-sm rounded-lg bg-blue-600 py-3 text-sm font-semibold hover:bg-blue-500 transition disabled:opacity-50"
         >
@@ -222,9 +306,10 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
             // Clear any stale transcript immediately
             resetTranscript();
             setIsVoiceGuided(true);
-            // Set waiting flag BEFORE speaking so it's ready when user responds
-            isWaitingForProductRef.current = true;
-            speak("Voice search active. What are you looking for?");
+            // Speak first, then set waiting flag AFTER speech ends
+            speak("Voice search active. What are you looking for?", () => {
+              isWaitingForProductRef.current = true;
+            });
           }} 
           className="mb-6 w-full max-w-sm rounded-lg border border-white/20 py-3 flex items-center justify-center gap-2 hover:bg-white/10 transition"
         >
