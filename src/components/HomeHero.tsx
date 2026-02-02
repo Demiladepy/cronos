@@ -15,7 +15,6 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
   const isLandingReadRef = useRef(false); 
   const isSpeakingRef = useRef(false); 
   
-  // 🔒 1. NEW: The Search Lock
   const isSearchLockedRef = useRef(false);
   const isStoppingRef = useRef(false);
   const stopCooldownRef = useRef(false);
@@ -24,23 +23,24 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
   const speak = useCallback((text: string, onEnd?: () => void) => {
     window.speechSynthesis.cancel();
-    isSpeakingRef.current = true;
+    isSpeakingRef.current = true; // Lock immediately
     SpeechRecognition.stopListening(); 
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
     
     utterance.onend = () => {
-      isSpeakingRef.current = false;
+      resetTranscript(); // Clear whatever was heard during AI speech
+      
+      // Delay allows the browser's transcript state to actually clear 
+      // and physical audio echo to dissipate
       setTimeout(() => {
-        // Clear any captured AI speech before restarting listening
-        resetTranscript();
-        // Only restart listening if we aren't currently analyzing
+        isSpeakingRef.current = false;
         if (!isSearchLockedRef.current) {
-            SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' });
+          SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' });
         }
         if (onEnd) onEnd();
-      }, 500); // Increased delay to ensure TTS audio has fully dissipated
+      }, 800); 
     };
     
     window.speechSynthesis.speak(utterance);
@@ -56,28 +56,14 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
   }, [speak]);
 
   const handleStartAnalyze = async (query: string) => {
-    // 🛑 2. GUARD: Prevent double-firing
-    if (isSearchLockedRef.current || !query || query.length < 2) {
-      console.log('⚠️ Search blocked:', { locked: isSearchLockedRef.current, query, length: query?.length });
-      return;
-    }
-    console.log('🔍 Starting search for:', query);
+    if (isSearchLockedRef.current || !query || query.length < 2) return;
 
-    // Lock the search
     isSearchLockedRef.current = true;
-    
     abortControllerRef.current = new AbortController();
     setIsAnalyzing(true);
     setProgress(10);
     
-    // Mute mic while searching
-    SpeechRecognition.stopListening();
-    speak(`Searching for ${query}. Command me to stop if you change your mind.`);
-
-    // Safety timeout to unlock if something goes wrong
-    const lockTimeout = setTimeout(() => {
-      isSearchLockedRef.current = false;
-    }, 30000);
+    speak(`Searching for ${query}.`);
 
     try {
       const response = await fetch(`http://localhost:3001/api/scrape/all/${encodeURIComponent(query)}`, { 
@@ -100,7 +86,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
         onResult(topSorted);
         setProgress(100);
         setIsAnalyzing(false);
-        speak(`I found the top result on ${topSorted[0].vendor} for ${topSorted[0].price}. Command me to proceed to checkout.`);
+        speak(`I found the top result on ${topSorted[0].vendor} for ${topSorted[0].price}. Say proceed to checkout.`);
       } else {
         setIsAnalyzing(false);
         speak("I found nothing. Command me to search for something else.");
@@ -108,73 +94,65 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
     } catch (err: any) {
       setIsAnalyzing(false);
       if (err.name !== 'AbortError') {
-        console.error('Search error:', err);
         speak("Sorry, the search failed. Please try again.");
       }
     } finally {
-        // 🔓 3. UNLOCK: Always release the lock when done
-        clearTimeout(lockTimeout);
         isSearchLockedRef.current = false;
-        // Restart listening safely
-        setTimeout(() => SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' }), 500);
+        // The speak() calls in the try/catch will handle restarting the mic
     }
   };
 
   useEffect(() => {
-    // Guard: Don't listen if AI is speaking
+    // 1. HARD GUARD: If AI is talking, do absolutely nothing.
     if (isSpeakingRef.current) return;
 
-    const currentSpeech = (transcript + " " + interimTranscript).toLowerCase();
-    if (!currentSpeech.trim()) return;
+    const currentSpeech = (transcript + " " + interimTranscript).toLowerCase().trim();
+    if (!currentSpeech) return;
 
-    // --- PRIORITY COMMAND: STOP ---
-    // This is the ONLY command allowed while analyzing
+    // 2. STOP COMMAND (Highest Priority)
     if ((currentSpeech.includes("stop") || currentSpeech.includes("cancel")) && !isStoppingRef.current && !stopCooldownRef.current) {
       isStoppingRef.current = true;
       stopCooldownRef.current = true;
-
       window.speechSynthesis.cancel();
       setIsAnalyzing(false);
       if (abortControllerRef.current) abortControllerRef.current.abort();
-      
       isSearchLockedRef.current = false;
       isWaitingForProductRef.current = false;
-      
       resetTranscript();
-      SpeechRecognition.stopListening();
-      speak("Paused. Waiting for your next command.", () => {
+      speak("Stopped. Waiting for your next command.", () => {
         isStoppingRef.current = false;
-        // Reset cooldown after 2 seconds to prevent re-triggering from AI's own voice
-        setTimeout(() => {
-          stopCooldownRef.current = false;
-        }, 2000);
-        setTimeout(() => SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' }), 500);
+        setTimeout(() => { stopCooldownRef.current = false; }, 2000);
       });
       return;
     }
 
-    // 🛑 4. BUSY GUARD: If searching, ignore all other commands
+    // 3. BUSY GUARD
     if (isSearchLockedRef.current || isAnalyzing) return;
 
-    // --- PRODUCT CAPTURE (moved before isVoiceGuided check for button-triggered flows) ---
-    if (isWaitingForProductRef.current && transcript.trim().length > 1) {
-      const query = transcript.trim();
-      console.log('🎯 Product captured:', query);
-      isWaitingForProductRef.current = false;
-      resetTranscript();
-      SpeechRecognition.stopListening();
-      handleStartAnalyze(query);
+    // 4. PRODUCT CAPTURE (The fix for auto-searching AI's voice)
+    if (isWaitingForProductRef.current) {
+      if (transcript.trim().length > 2) {
+        const query = transcript.trim();
+        
+        // Anti-Feedback Filter: If the "query" is actually the AI's prompt, ignore it.
+        const aiVoicesCaught = ["what product", "search for", "look for", "your command", "voice search active"];
+        const isActuallyAiTalking = aiVoicesCaught.some(phrase => query.toLowerCase().includes(phrase));
+
+        if (!isActuallyAiTalking) {
+          isWaitingForProductRef.current = false;
+          resetTranscript();
+          handleStartAnalyze(query);
+        }
+      }
       return;
     }
 
-    // --- WAKE WORD (with flexible matching for Nigerian accents) ---
+    // 5. WAKE WORD
     if (!isVoiceGuided && (
       currentSpeech.includes("blind bargain") || 
       currentSpeech.includes("hey bargain") ||
       currentSpeech.includes("hey blind") ||
-      currentSpeech.includes("line bargain") ||  // Common mishearing
-      currentSpeech.includes("blind begun") ||   // Common mishearing
-      currentSpeech.endsWith("bargain")          // Catch partial wake words
+      currentSpeech.endsWith("bargain")
     )) {
       setIsVoiceGuided(true);
       resetTranscript();
@@ -188,32 +166,26 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
 
     if (!isVoiceGuided) return;
 
-    // --- COMMANDS (with flexible matching for Nigerian accents) ---
+    // 6. BUTTON COMMANDS
     if (
       currentSpeech.includes("click get my bargain") || 
-      currentSpeech.includes("click the blue button") ||
       currentSpeech.includes("get my bargain") ||
-      currentSpeech.includes("get bargain") ||
-      currentSpeech.includes("my bargain") ||
       currentSpeech.includes("click bargain")
     ) {
       resetTranscript();
-      // Set waiting flag BEFORE speaking so it's ready when user responds
       isWaitingForProductRef.current = true;
       speak("What product should I look for?");
       return;
     }
 
-    // Combined "Proceed" Logic (Removed duplicate block)
     if (allResults.length > 0 && (currentSpeech.includes("proceed") || currentSpeech.includes("checkout"))) {
       resetTranscript();
       speak("Opening store page.");
-      const targetUrl = `${allResults[0].url}#blindbargain`; 
-      window.open(targetUrl, '_blank');
+      window.open(`${allResults[0].url}#blindbargain`, '_blank');
       return;
     }
 
-  }, [transcript, interimTranscript, isVoiceGuided, allResults, isAnalyzing, speak, readLandingPage, resetTranscript, onResult]);
+  }, [transcript, interimTranscript, isVoiceGuided, allResults, isAnalyzing, speak, readLandingPage, resetTranscript]);
 
   useEffect(() => {
     SpeechRecognition.startListening({ continuous: true, interimResults: true, language: 'en-NG' });
