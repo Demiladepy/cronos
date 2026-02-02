@@ -231,40 +231,24 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       return;
     }
 
-    // 7. CHECKOUT / PROCEED (The Fix)
-    if (allResults.length > 0 && (currentSpeech.includes("proceed") || currentSpeech.includes("yes") || currentSpeech.includes("checkout"))) {
+    // Combined "Proceed" Logic - Opens the product page on the vendor's site
+    if (allResults.length > 0 && (currentSpeech.includes("proceed") || currentSpeech.includes("checkout"))) {
       resetTranscript();
+      const productUrl = allResults[0].url;
       
-      const product = allResults[0];
-      let targetUrl = product.url;
-
+      // Log for debugging
+      console.log('🛒 Opening product URL:', productUrl);
       
-      if (!targetUrl.startsWith('http')) {
-        const domainMap: Record<string, string> = {
-          'jumia': 'https://www.jumia.com.ng',
-          'konga': 'https://www.konga.com',
-          'amazon': 'https://www.amazon.com',
-          'jiji': 'https://jiji.ng',
-          'aliexpress': 'https://www.aliexpress.com'
-        };
-
-        const vendorKey = product.vendor.toLowerCase();
-        const baseUrl = domainMap[vendorKey];
-
-        if (baseUrl) {
-          const cleanPath = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`;
-          targetUrl = `${baseUrl}${cleanPath}`;
-        } else {
-          // Fallback: If unknown vendor, Google it
-          targetUrl = `https://www.google.com/search?q=${encodeURIComponent(product.name)}`;
-        }
+      // Validate URL exists and is absolute
+      if (!productUrl || !productUrl.startsWith('http')) {
+        speak("Sorry, the product link is not available. Please try searching again.");
+        return;
       }
-
-      speak(`Opening ${product.vendor} product page.`);
       
-      // Open the sanitized ABSOLUTE URL
-      window.open(`${targetUrl}#blindbargain`, '_blank');
-      return;
+      speak("Opening the store page now.");
+      // Add hash for extension detection (only if URL doesn't already have a hash)
+      const targetUrl = productUrl.includes('#') ? productUrl : `${productUrl}#blindbargain`;
+      window.open(targetUrl, '_blank');
       return;
     }
 

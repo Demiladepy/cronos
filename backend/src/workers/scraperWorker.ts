@@ -32,6 +32,9 @@ async function scrape() {
     });
 
     const page = await browser.newPage();
+    // Reduced timeout for faster voice agent response
+    page.setDefaultNavigationTimeout(15000);
+    
     
     // Standard User Agent
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
@@ -94,14 +97,12 @@ async function scrape() {
         break;
     }
 
-    // 2. NAVIGATION (Soft Timeout 20s)
-    try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
-    } catch(e) {
-        console.log(`⚠️ [${platform}] Timeout (20s). Checking content anyway...`);
-    }
+    console.log(`🌐 [${platform}] Navigating to: ${url}`);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    console.log(`✅ [${platform}] Page loaded`);
 
-    let products: any[] = [];
+    // Brief wait for dynamic content (reduced for speed)
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // 3. SCRAPE
     for (const strategy of strategies) {
