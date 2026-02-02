@@ -20,8 +20,8 @@ async function scrape() {
 
   try {
     const page = await browser.newPage();
-    // Set a reasonable timeout so the voice agent doesn't wait forever
-    page.setDefaultNavigationTimeout(30000);
+    // Reduced timeout for faster voice agent response
+    page.setDefaultNavigationTimeout(15000);
     
     
     await page.setRequestInterception(true);
@@ -72,11 +72,11 @@ async function scrape() {
     }
 
     console.log(`🌐 [${platform}] Navigating to: ${url}`);
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
     console.log(`✅ [${platform}] Page loaded`);
 
-    // Wait a bit for dynamic content
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Brief wait for dynamic content (reduced for speed)
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     const products = await page.evaluate((sel: string, platformName: string) => {
       const doc = (globalThis as any).document;

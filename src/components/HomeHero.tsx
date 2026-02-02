@@ -242,11 +242,23 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       return;
     }
 
-    // Combined "Proceed" Logic (Removed duplicate block)
+    // Combined "Proceed" Logic - Opens the product page on the vendor's site
     if (allResults.length > 0 && (currentSpeech.includes("proceed") || currentSpeech.includes("checkout"))) {
       resetTranscript();
-      speak("Opening store page.");
-      const targetUrl = `${allResults[0].url}#blindbargain`; 
+      const productUrl = allResults[0].url;
+      
+      // Log for debugging
+      console.log('🛒 Opening product URL:', productUrl);
+      
+      // Validate URL exists and is absolute
+      if (!productUrl || !productUrl.startsWith('http')) {
+        speak("Sorry, the product link is not available. Please try searching again.");
+        return;
+      }
+      
+      speak("Opening the store page now.");
+      // Add hash for extension detection (only if URL doesn't already have a hash)
+      const targetUrl = productUrl.includes('#') ? productUrl : `${productUrl}#blindbargain`;
       window.open(targetUrl, '_blank');
       return;
     }
