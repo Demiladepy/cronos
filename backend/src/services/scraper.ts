@@ -8,8 +8,8 @@ const __dirname = dirname(__filename);
 export default class WebScraper {
     // Note: No 'static' here
     public async scrapeMultiplePlatforms(query: string) {
-        // Reduced to fastest Nigerian platforms only for speed
-        const platforms = ['jumia', 'konga', 'jiji'];
+        // Fast Nigerian platforms for speed
+        const platforms = ['jumia', 'konga', 'jiji', 'slot'];
         
         const results = await Promise.all(
           platforms.map(async (platform) => {
