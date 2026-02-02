@@ -1,5 +1,3 @@
-// background.js
-
 // 1. Listen for speech requests from the content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SPEAK') {
