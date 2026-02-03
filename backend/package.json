@@ -6,7 +6,6 @@
     "type": "module",
     "scripts": {
         "dev": "tsx watch src/server.ts",
-        "build": "tsc",
         "start": "node dist/server.js",
         "migrate": "node dist/db/migrate.js",
         "test": "vitest"
@@ -35,6 +34,7 @@
         "puppeteer-extra": "^3.3.6",
         "puppeteer-extra-plugin-stealth": "^2.11.2",
         "sharp": "^0.33.1",
+        "ts-node": "^10.9.2",
         "zod": "^3.22.4"
     },
     "devDependencies": {
@@ -47,7 +47,7 @@
         "postcss": "^8.5.6",
         "tailwindcss": "^4.1.18",
         "tsx": "^4.7.0",
-        "typescript": "^5.3.3",
+        "typescript": "^5.9.3",
         "vitest": "^1.1.0"
     }
 }

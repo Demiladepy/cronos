@@ -23,9 +23,6 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build (if you are using TypeScript)
-RUN npm run build
-
 # Expose port (Render sets a PORT env var, we must use it)
 EXPOSE 3001
 

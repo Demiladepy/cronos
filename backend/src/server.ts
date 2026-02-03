@@ -2,83 +2,87 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
-import scrapeRouter from './routes/scrape.js';
-import WebScraper  from './services/scraper.js';
+import WebScraper from './services/scraper.js';
+import { Worker } from 'worker_threads'; 
+import path from 'path';
+import { fileURLToPath } from 'url'; // <--- NEW IMPORT
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// --- Middleware ---
+// ⚡ FIX: Recreate __dirname for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Enable CORS for your Vite frontend (Port 5173)
+// --- Middleware ---
 app.use(cors({ 
-    origin: ['http://localhost:5173', 'http://localhost:3000'], 
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://cronos-lzv9i9eop-david-s-projects-29110316.vercel.app'], 
     credentials: true 
 }));
-
-// Request logging for debugging (morgan)
 app.use(morgan('dev'));
-
-// Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- Routes ---
 
-// The dedicated router for your scraping logic
-app.use('/api/scrape', scrapeRouter);
+app.get('/api/scrape/all/:query', async (req: Request, res: Response) => {
+    const query = req.params.query;
+    console.log(`Received search for: ${query}`);
 
-// Basic health check to verify server status
-app.get('/health', (req: Request, res: Response) => {
-    res.json({ 
-        status: 'healthy',
-        uptime: process.uptime(),
-        timestamp: new Date().toISOString()
+    const platforms = ['jumia', 'amazon', 'jiji', 'konga', 'slot'];
+    
+    const workerPromises = platforms.map(platform => {
+        return new Promise((resolve) => {
+            
+            const workerPath = path.resolve(__dirname, 'workers', 'scraperWorker.ts');
+
+            const worker = new Worker(workerPath, { 
+                workerData: { platform, query },
+                // ⚡ FIX: Allow Worker to read TypeScript files directly
+                execArgv: ['-r', 'ts-node/register/transpile-only'] 
+            });
+
+            worker.on('message', (data) => resolve(data));
+            worker.on('error', (err) => {
+                console.error(`Worker error on ${platform}:`, err);
+                resolve({ platform, products: [] }); 
+            });
+            worker.on('exit', (code) => {
+                if (code !== 0) console.error(`Worker stopped with exit code ${code}`);
+            });
+        });
     });
+
+    try {
+        const results = await Promise.all(workerPromises);
+        res.json({ platforms: results });
+    } catch (error) {
+        console.error('Server Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
-// --- Server Lifecycle & Cleanup ---
+// Health Check
+app.get('/health', (req: Request, res: Response) => {
+    res.json({ status: 'healthy', uptime: process.uptime() });
+});
+
+// --- Server Lifecycle ---
 
 const server = app.listen(PORT, () => {
     console.log(`\n🚀 BlindBargain Backend is Live!`);
     console.log(`📡 Port: ${PORT}`);
-    console.log(`📍 Health Check: http://localhost:${PORT}/health`);
-    console.log(`🔗 API Endpoint: http://localhost:${PORT}/api/scrape/all/:query\n`);
 });
 
-/**
- * Graceful Shutdown Handler
- * This ensures Puppeteer and the Express server close cleanly.
- */
 const gracefulShutdown = async (signal: string) => {
-    console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
-
-    // 1. Close the browser instance to release memory
-    try {
-        await WebScraper.closeBrowser();
-        console.log('✅ Puppeteer browser closed.');
-    } catch (err) {
-        console.error('❌ Error closing Puppeteer:', err);
-    }
-
-    // 2. Stop accepting new HTTP requests
-    server.close(() => {
-        console.log('✅ HTTP server closed.');
-        
-        // 3. Exit the process (0 = success)
-        process.exit(0);
-    });
-
-    // Forced shutdown if cleanup takes too long (e.g., 10 seconds)
-    setTimeout(() => {
-        console.error('⚠️  Forced shutdown: Cleanup took too long.');
-        process.exit(1);
-    }, 10000);
+    console.log(`\nReceived ${signal}. Shutdown...`);
+    try { await WebScraper.closeBrowser(); } catch (err) {}
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 10000);
 };
 
-// Listen for termination signals (Ctrl+C or Process Kill)
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
