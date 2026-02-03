@@ -2,7 +2,7 @@ import { parentPort, workerData } from 'worker_threads';
 import puppeteer from 'puppeteer-extra'; 
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
-// 1. ENABLE STEALTH (Crucial for Jumia/Amazon)
+// 1. ENABLE STEALTH
 puppeteer.use(StealthPlugin());
 
 interface Strategy {
@@ -15,9 +15,10 @@ interface Strategy {
 async function scrape() {
   const { platform, query } = workerData as { platform: string; query: string };
   let browser: any = null;
+  let products: any[] = []; // <--- MOVED TO TOP SCOPE FOR SAFETY
 
   try {
-    // 🚀 LAUNCH: Memory Only, No Disk Cache
+    // 🚀 LAUNCH: Memory Only, Fast & Lightweight
     browser = await puppeteer.launch({
       headless: 'new',
       args: [
@@ -32,34 +33,30 @@ async function scrape() {
     });
 
     const page = await browser.newPage();
-    // Reduced timeout for faster voice agent response
-    page.setDefaultNavigationTimeout(15000);
     
+    // Safety: 15s Max Timeout
+    page.setDefaultNavigationTimeout(15000);
     
     // Standard User Agent
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    // ⚡ SPEED BOOST: Block heavy resources & trackers
+    // ⚡ SPEED: Block Heavy Resources
     await page.setRequestInterception(true);
     page.on('request', (req: any) => {
        const rType = req.resourceType();
        const url = req.url();
 
-       // 1. Block Heavy Media
        if (['image', 'media', 'font', 'stylesheet'].includes(rType)) {
          req.abort();
          return;
        }
 
-       // 2. Block Specific Trackers (The real speed killers)
        if (url.includes('google-analytics') || 
            url.includes('facebook') || 
            url.includes('doubleclick') || 
            url.includes('googletagmanager') || 
            url.includes('criteo') || 
-           url.includes('hotjar') ||
-           url.includes('bing') ||
-           url.includes('twitter')) {
+           url.includes('hotjar')) {
          req.abort();
          return;
        }
@@ -97,17 +94,18 @@ async function scrape() {
         break;
     }
 
-    console.log(`🌐 [${platform}] Navigating to: ${url}`);
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    console.log(`✅ [${platform}] Page loaded`);
-
-    // Brief wait for dynamic content (reduced for speed)
-    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log(`🌐 [${platform}] Navigating...`);
     
+    // 2. NAVIGATE (Soft Fail)
+    try {
+        await page.goto(url, { waitUntil: 'domcontentloaded' });
+    } catch(e) {
+        console.log(`⚠️ [${platform}] Navigation timeout/error. Attempting to scrape anyway.`);
+    }
+
     // 3. SCRAPE
     for (const strategy of strategies) {
         try {
-            // Wait max 4 seconds for list
             try { await page.waitForSelector(strategy.container, { timeout: 4000 }); } catch(e) {}
 
             const items = await page.evaluate((strat: any, vendor: string) => {
@@ -136,19 +134,21 @@ async function scrape() {
             if (items.length > 0) {
                 // 🛑 ACCESSORY FILTER
                 const lowerQuery = query.toLowerCase();
-                const wantsAccessory = lowerQuery.includes('case') || lowerQuery.includes('screen') || lowerQuery.includes('charger');
+                const wantsAccessory = lowerQuery.includes('case') || lowerQuery.includes('screen') || lowerQuery.includes('charger') || lowerQuery.includes('cover');
 
                 products = items.filter((p: any) => {
                     if (p.price === 0 || p.name === 'Unknown') return false;
-                    // Filter out cases/screens if user asked for a phone
+                    
                     if (!wantsAccessory) {
                         const name = p.name.toLowerCase();
-                        if (name.includes('case') || name.includes('screen protector') || name.includes('cover') || name.includes('glass')) return false; 
+                        if (name.includes('case') || name.includes('screen protector') || name.includes('cover') || name.includes('glass') || name.includes('pouch')) {
+                            return false; 
+                        }
                     }
                     return true;
                 }).slice(0, 5); 
 
-                break;
+                break; // Found data, stop trying strategies
             }
         } catch (e) { }
     }
