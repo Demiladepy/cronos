@@ -240,7 +240,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ onResult }) => {
       console.log('🛒 Opening product URL:', productUrl);
       
       // Validate URL exists and is absolute
-      if (!productUrl || !productUrl.startsWith('http')) {
+      if (!productUrl || !productUrl.startsWith('https')) {
         speak("Sorry, the product link is not available. Please try searching again.");
         return;
       }
