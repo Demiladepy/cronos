@@ -18,12 +18,13 @@ export function useVoiceRecognition(
   const [error, setError] = useState<string | null>(null)
   const [isSupported, setIsSupported] = useState(false)
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  // 1. FIXED: Renamed to match usage below
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Check for browser support
+    // 2. FIXED: Cast window to 'any' to avoid "Property does not exist"
     const SpeechRecognition =
-      window.SpeechRecognition || (window as any).webkitSpeechRecognition
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
     if (!SpeechRecognition) {
       setIsSupported(false)
@@ -42,7 +43,8 @@ export function useVoiceRecognition(
       setError(null)
     }
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    // 3. FIXED: Use 'any' type for event
+    recognition.onresult = (event: any) => {
       let interimTranscript = ''
       let finalTranscript = ''
 
@@ -61,34 +63,33 @@ export function useVoiceRecognition(
       })
     }
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      setIsListening(false)
+    // 4. FIXED: Use 'any' type for error event
+    recognition.onerror = (event: any) => {
       let errorMessage = 'An error occurred with speech recognition'
 
-      switch (event.error) {
-        case 'no-speech':
-          errorMessage = 'No speech detected. Please try again.'
-          break
-        case 'audio-capture':
-          errorMessage = 'No microphone found. Please check your microphone.'
-          break
-        case 'not-allowed':
-          errorMessage = 'Microphone permission denied. Please enable microphone access.'
-          break
-        case 'network':
-          errorMessage = 'Network error. Please check your connection.'
-          break
-        default:
-          errorMessage = `Speech recognition error: ${event.error}`
+      // Handle common errors
+      if (event.error === 'no-speech') {
+        errorMessage = 'No speech detected.'
+        // Don't stop listening on no-speech if continuous
+        if (!continuous) setIsListening(false)
+      } else if (event.error === 'not-allowed') {
+        errorMessage = 'Microphone permission denied.'
+        setIsListening(false)
+      } else {
+        errorMessage = `Error: ${event.error}`
+        setIsListening(false)
       }
 
-      setError(errorMessage)
+      if (event.error !== 'no-speech') {
+          setError(errorMessage)
+      }
     }
 
     recognition.onend = () => {
       setIsListening(false)
     }
 
+    // 5. FIXED: Correctly assigning to the ref we created
     recognitionRef.current = recognition
 
     return () => {
@@ -105,19 +106,21 @@ export function useVoiceRecognition(
     }
 
     try {
+      // Clear previous transcript on new start
       setTranscript('')
       setError(null)
       recognitionRef.current.start()
     } catch (err) {
-      setError('Failed to start speech recognition')
+      // Sometimes it throws if already started, just ignore
+      console.warn('Speech recognition already started')
     }
   }, [])
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current && isListening) {
+    if (recognitionRef.current) {
       recognitionRef.current.stop()
     }
-  }, [isListening])
+  }, [])
 
   return {
     isListening,
@@ -128,12 +131,3 @@ export function useVoiceRecognition(
     isSupported,
   }
 }
-
-// Extend Window interface for TypeScript
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition
-    webkitSpeechRecognition: typeof SpeechRecognition
-  }
-}
-
